@@ -2,16 +2,24 @@ import numpy as np
 from copy import deepcopy
 from numpy import ndarray
 from utils import assert_same_shape, permute_data
-from network.neural_network import NeuralNetwork
-from optimizers.optimizer import Optimizer
+from network import NeuralNetwork
+from sklearn.preprocessing import LabelBinarizer
+from optimizers import Optimizer
 
 
 class Trainer(object):
-    def __init__(self, net: NeuralNetwork, optim: Optimizer, verbose: bool = False):
+    def __init__(
+        self,
+        net: NeuralNetwork,
+        optim: Optimizer,
+        classification: bool = False,
+        verbose: bool = False,
+    ):
         self.net = net
         self.optim = optim
         self.best_loss = 1e9
         self.verbose = verbose
+        self.classification = classification
         setattr(self.optim, 'net', self.net)
 
     def generate_batches(
@@ -43,18 +51,29 @@ class Trainer(object):
         restart: bool = True,
     ):
         np.random.seed(seed)
+        assert len(self.net.layers) != 0, 'add layers to train the model'
+
         if restart:
             for layer in self.net.layers:
                 layer.first = True
             self.best_loss = 1e9
+        if self.classification:
+            lb = LabelBinarizer()
+            y_train = lb.fit_transform(y_train)
+            y_test = lb.transform(y_test)
+
         for e in range(1, epochs + 1):
             if e % eval_every == 0:
                 last_model = deepcopy(self.net)
             X_train, y_train = permute_data(X_train, y_train)
             batch_generator = self.generate_batches(X_train, y_train, batch_size)
+
+            # Training Loop
             for ii, (X_batch, y_batch) in enumerate(batch_generator):
                 self.net.train(X_batch, y_batch)
                 self.optim.step()
+
+            # Evaluation Block
             if e % eval_every == 0:
                 test_preds = self.net.forward(X_test)
                 loss = self.net.loss.forward(test_preds, y_test)
@@ -73,4 +92,7 @@ class Trainer(object):
                     break
 
     def predict(self, X: ndarray) -> ndarray:
-        return self.net.forward(X)
+        pred = self.net.forward(X)
+        if self.classification:
+            return np.argsort(pred, axis=1)[:, -1]
+        return pred

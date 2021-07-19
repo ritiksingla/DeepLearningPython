@@ -1,19 +1,18 @@
 from numpy import ndarray
-import sys
-
-sys.path.append("..")
-from layers.layer import Layer
-from losses.loss import Loss
+from layers import Layer
+from losses import Loss
 
 
 class NeuralNetwork(object):
-    def __init__(self, layers: list[Layer], loss: Loss, seed: int = 1):
-        self.layers = layers
+    def __init__(self, loss: Loss, seed: int = 1):
         self.loss = loss
         self.seed = seed
-        if seed:
-            for layer in self.layers:
-                setattr(layer, 'seed', self.seed)
+        self.layers = []
+
+    def add(self, layer: Layer):
+        if self.seed:
+            setattr(layer, 'seed', self.seed)
+        self.layers.append(layer)
 
     def forward(self, x_batch: ndarray) -> ndarray:
         x_out = x_batch

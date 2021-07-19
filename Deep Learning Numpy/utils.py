@@ -18,3 +18,10 @@ def assert_same_shape(array: ndarray, array_grad: ndarray):
 def permute_data(X, y):
     perm = np.random.permutation(X.shape[0])
     return X[perm], y[perm]
+
+
+def softmax(X):
+    tmp = X - X.max(axis=1)[:, np.newaxis]
+    np.exp(tmp, out=X)
+    X /= X.sum(axis=1)[:, np.newaxis]
+    return X
