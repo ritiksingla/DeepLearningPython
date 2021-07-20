@@ -111,3 +111,25 @@ class BiasAdd(ParamOperation):
         param_grad = np.ones_like(self.param_.T) * output_grad
         # (None,neurons)->(1,neurons)->(neurons,1)
         return (np.sum(param_grad, axis=0).reshape(1, -1)).T
+
+
+class WeightMultiplyElementWise(ParamOperation):
+    '''Compute Weight Multiply Element Wise'''
+
+    def __init__(self, W: ndarray):
+        # self.params_ of shape = (neurons, 1)
+        super().__init__(W)
+
+    def _output(self) -> ndarray:
+        # (None, neurons) * (neurons, 1).T
+        return self.input_ * (self.param_.T)
+
+    def _input_grad(self, output_grad):
+        # (neurons, 1).T .* (None, neurons) where .* means element-wise product
+        return self.param_.T * output_grad
+
+    def _param_grad(self, output_grad):
+        # (None, neurons) .* (None, neurons)
+        param_grad = self.input_ * output_grad
+        # (None,neurons)->(1,neurons)->(neurons,1)
+        return (np.sum(param_grad, axis=0).reshape(1, -1)).T

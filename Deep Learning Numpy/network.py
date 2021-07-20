@@ -20,6 +20,12 @@ class NeuralNetwork(object):
             x_out = layer.forward(x_out)
         return x_out
 
+    def forward_validation(self, x_batch: ndarray) -> ndarray:
+        x_out = x_batch
+        for layer in self.layers:
+            x_out = layer.forward_validation(x_out)
+        return x_out
+
     def backward(self, loss_grad: ndarray):
         grad = loss_grad
         for layer in reversed(self.layers):

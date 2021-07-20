@@ -1,8 +1,8 @@
 import numpy as np
-from layers import Dense
+from layers import Dense, BatchNormalization
 from network import NeuralNetwork
 from losses import MSELoss, L1Loss, BCELoss
-from optimizers import SGD
+from optimizers import SGD, RMSProp, Adam
 from trainer import Trainer
 from sklearn.metrics import r2_score, accuracy_score
 
@@ -17,7 +17,8 @@ nn.add(Dense(units=1))
 
 criterion = MSELoss()
 dnn = NeuralNetwork(loss=criterion, seed=20190501)
-dnn.add(Dense(units=13, activation='sigmoid'))
+dnn.add(Dense(units=13, use_bias=False))
+dnn.add(BatchNormalization(units=13))
 dnn.add(Dense(units=13, activation='sigmoid'))
 dnn.add(Dense(units=1))
 
@@ -32,19 +33,18 @@ from sklearn.preprocessing import StandardScaler
 
 s = StandardScaler()
 data = s.fit_transform(data)
+target = target.reshape(-1, 1)
 from sklearn.model_selection import train_test_split
 
 X_train, X_test, y_train, y_test = train_test_split(
     data, target, test_size=0.3, random_state=80718
 )
-y_train = y_train.reshape(-1, 1)
-y_test = y_test.reshape(-1, 1)
 
 # _________No Hidden Layer Regression_________
 print("_________No Hidden Layer_________")
-trainer = Trainer(lr, SGD(lr=0.01))
+trainer = Trainer(lr, SGD(lr=0.01), verbose=True)
 
-trainer.fit(X_train, y_train, X_test, y_test, epochs=50, eval_every=10, seed=20190501)
+trainer.fit(X_train, y_train, X_test, y_test, epochs=100, eval_every=10, seed=20190501)
 
 print(
     'R2 Score for training data: {:.2f}'.format(
@@ -58,7 +58,7 @@ print(
 
 # _________Single Hidden Layer Regression_________
 print("_________Single Hidden Layer_________")
-trainer = Trainer(nn, SGD(lr=0.01, momentum=0.9, dampening=0))
+trainer = Trainer(nn, SGD(lr=0.01, momentum=0.9, dampening=0), verbose=True)
 
 trainer.fit(X_train, y_train, X_test, y_test, epochs=100, eval_every=10, seed=20190501)
 
@@ -74,9 +74,19 @@ print(
 
 # _________2 Hidden Layers Regression_________
 print("_________2 Hidden Layers_________")
-trainer = Trainer(dnn, SGD(lr=0.01))
+trainer = Trainer(dnn, Adam(lr=0.01, nesterov=True), verbose=True)
 
-trainer.fit(X_train, y_train, X_test, y_test, epochs=50, eval_every=10, seed=20190501)
+# Using large batch size for BatchNormalization layer
+trainer.fit(
+    X_train,
+    y_train,
+    X_test,
+    y_test,
+    eval_every=10,
+    batch_size=128,
+    epochs=200,
+    seed=20190501,
+)
 
 print(
     'R2 Score for training data: {:.2f}'.format(
@@ -104,7 +114,7 @@ model = NeuralNetwork(loss=BCELoss(), seed=20190119)
 model.add(Dense(10, activation='sigmoid'))
 model.add(Dense(4, activation='softmax'))
 
-trainer = Trainer(model, SGD(lr=0.1, momentum=0.9, dampening=0), classification=True)
+trainer = Trainer(model, RMSProp(lr=0.01), classification=True, verbose=True)
 trainer.fit(X_train, y_train, X_test, y_test, epochs=150, eval_every=10, seed=20190501)
 print(
     'Accuracy Score for training data: {:.2f}'.format(

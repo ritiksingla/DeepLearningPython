@@ -42,14 +42,16 @@ class Trainer(object):
         self,
         X_train: ndarray,
         y_train: ndarray,
-        X_test: ndarray,
-        y_test: ndarray,
+        X_test: ndarray = None,
+        y_test: ndarray = None,
         epochs: int = 100,
-        eval_every: int = 10,
+        eval_every: int = None,
         batch_size: int = 32,
         seed: int = 1,
         restart: bool = True,
     ):
+        if eval_every is not None:
+            assert X_test is not None and y_test is not None
         np.random.seed(seed)
         assert len(self.net.layers) != 0, 'add layers to train the model'
 
@@ -60,10 +62,11 @@ class Trainer(object):
         if self.classification:
             lb = LabelBinarizer()
             y_train = lb.fit_transform(y_train)
-            y_test = lb.transform(y_test)
+            if eval_every is not None:
+                y_test = lb.transform(y_test)
 
         for e in range(1, epochs + 1):
-            if e % eval_every == 0:
+            if eval_every is not None and e % eval_every == 0:
                 last_model = deepcopy(self.net)
             X_train, y_train = permute_data(X_train, y_train)
             batch_generator = self.generate_batches(X_train, y_train, batch_size)
@@ -71,10 +74,10 @@ class Trainer(object):
             # Training Loop
             for ii, (X_batch, y_batch) in enumerate(batch_generator):
                 self.net.train(X_batch, y_batch)
-                self.optim.step()
+                self.optim.step(ii + 1)
 
             # Evaluation Block
-            if e % eval_every == 0:
+            if eval_every is not None and e % eval_every == 0:
                 test_preds = self.net.forward(X_test)
                 loss = self.net.loss.forward(test_preds, y_test)
                 if loss < self.best_loss:
@@ -92,7 +95,7 @@ class Trainer(object):
                     break
 
     def predict(self, X: ndarray) -> ndarray:
-        pred = self.net.forward(X)
+        pred = self.net.forward_validation(X)
         if self.classification:
             return np.argsort(pred, axis=1)[:, -1]
         return pred
