@@ -16,19 +16,44 @@ class Optimizer(object):
 
 class SGD(Optimizer):
     '''
-    Implements SGD Optimization with optional momentum.
+    Implements Stochastic Gradient Descent Optimization with optional momentum.
     Momentum helps in generalizing the Gradient Descent step based on history of batches.
     Batches may differ largely in distribution and hence almost always optimal over SGD without momentum.
     Momentum help in fast convergence and ending up in tighter region around minima.
+
+    Parameters
+    ----------
+    lr : float
+        learning rate
+
+    momentum : float in range [0, 1]
+        acceleration for momentum
+
+    dampening : float in range [0, 1]
+        friction for momentum
+
+    nesterov : bool
+        nesterov version
+
     '''
 
-    def __init__(self, lr: float, momentum=0, dampening=0, nesterov=False):
+    def __init__(
+        self, lr: float, momentum: float = 0.0, dampening: float = 0.0, nesterov=False
+    ):
         super().__init__(lr)
         self.momentum = momentum
         self.dampening = dampening
         self.nesterov = nesterov
 
     def step(self, local_step: int):
+        '''
+        Take a single step toward optimal parameters to minimize the given loss
+
+        Parameters
+        ----------
+        local_step : int
+            Current batch number
+        '''
         if local_step == 1:
             self.v_t = [np.zeros_like(param) for param in self.net.param_grads()]
         for (param, grad, v_t) in zip(

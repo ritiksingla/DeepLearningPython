@@ -2,10 +2,10 @@ import numpy as np
 from numpy import ndarray
 from utils import assert_same_shape
 
-# Inherited by Activation Functions and ParamOperation
+
 class Operation(object):
     '''
-    Base class for operation in a Neural Network
+    Base class for operation with non-learnable parameters.
     '''
 
     def __init__(self):
@@ -13,8 +13,16 @@ class Operation(object):
 
     def forward(self, input_: ndarray):
         '''
-        Stores input in the self._input instance variable
-        Calls the self._output() function.
+        Forward Propagation through Operation Layer, calls self._output().
+
+        Attributes
+        ----------
+        input_ : numpy array
+            required for checking grads size and
+            maybe required while computing gradients.
+
+        output_ : numpy array
+            required only for checking grads size!!
         '''
         self.input_ = input_
         self.output_ = self._output()
@@ -22,7 +30,24 @@ class Operation(object):
 
     def backward(self, output_grad: ndarray) -> ndarray:
         '''
+        Back Propagate the gradients
         Calls the self._input_grad() function
+        Parameters
+        ----------
+        output_grad : numpy array
+            size = self.output_.size()
+            Gradients w.r.t inputs from (i + 1)th operation
+
+        Attributes
+        ----------
+        input_grad_ : numpy array
+            size = self.input_.size()
+            Gradients w.r.t inputs to (i - 1)th operation
+
+        Returns
+        ----------
+        input_grad_
+
         '''
         assert_same_shape(output_grad, self.output_)
         self.input_grad_ = self._input_grad(output_grad)
@@ -31,20 +56,23 @@ class Operation(object):
 
     def _output(self) -> ndarray:
         '''
-        The _output method must be defined for each Operation
+        The _output method must be defined for each operation
         '''
         raise NotImplementedError()
 
     def _input_grad(self, output_grad: ndarray) -> ndarray:
         '''
-        The _input_grad method must be defined for each Operation
+        The _input_grad method must be defined for each operation
         Compute dL/Z_(i - 1) from dL/dZ_i
         '''
         raise NotImplementedError()
 
 
-# Inherited by layers containing params
 class ParamOperation(Operation):
+    '''
+    Base class for operation with learnable parameters
+    '''
+
     def __init__(self, param: ndarray):
         super().__init__()
         self.param_ = param
@@ -69,7 +97,7 @@ class ParamOperation(Operation):
 
 class WeightMultiply(ParamOperation):
     '''
-    Weight multiplication operation for neural network
+    Matrix multiplication operation
     '''
 
     def __init__(self, W: ndarray):
@@ -92,7 +120,7 @@ class WeightMultiply(ParamOperation):
 
 
 class BiasAdd(ParamOperation):
-    '''Compute Bias Addition'''
+    '''Bias addition operation'''
 
     def __init__(self, B: ndarray):
         # self.params_ of shape = (neurons, 1)
@@ -114,7 +142,7 @@ class BiasAdd(ParamOperation):
 
 
 class WeightMultiplyElementWise(ParamOperation):
-    '''Compute Weight Multiply Element Wise'''
+    '''Element-wise multiplication operation'''
 
     def __init__(self, W: ndarray):
         # self.params_ of shape = (neurons, 1)

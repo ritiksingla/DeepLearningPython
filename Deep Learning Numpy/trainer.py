@@ -25,6 +25,9 @@ class Trainer(object):
     def generate_batches(
         self, X: ndarray, y: ndarray, batch_size: int = 32
     ) -> tuple[ndarray]:
+    '''
+    Generate batches according to batch_size parameter passed
+    '''
         assert (
             X.shape[0] == y.shape[0]
         ), '''
@@ -78,7 +81,7 @@ class Trainer(object):
 
             # Evaluation Block
             if eval_every is not None and e % eval_every == 0:
-                test_preds = self.net.forward(X_test)
+                test_preds = self.net.forward(X_test, training=False)
                 loss = self.net.loss.forward(test_preds, y_test)
                 if loss < self.best_loss:
                     if self.verbose:
@@ -95,7 +98,12 @@ class Trainer(object):
                     break
 
     def predict(self, X: ndarray) -> ndarray:
-        pred = self.net.forward_validation(X)
+        '''
+        Predicts the target for input.
+        Training = False is useful for (BatchNorm, Dropout) like layers which behave
+        differently for prediction
+        '''
+        pred = self.net.forward(X, training=False)
         if self.classification:
             return np.argsort(pred, axis=1)[:, -1]
         return pred

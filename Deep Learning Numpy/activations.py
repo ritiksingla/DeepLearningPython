@@ -71,6 +71,8 @@ class ReLU(Operation):
 class Softmax(Operation):
     '''
     Softmax Activation Function
+    Note : _input_grad does simply backprop output_grad
+    as it is assumed to be combined with BCELoss at last layer
     '''
 
     def __init__(self):
@@ -82,3 +84,12 @@ class Softmax(Operation):
     def _input_grad(self, output_grad: ndarray) -> ndarray:
         '''Compute input gradient'''
         return output_grad
+
+
+ACTIVATION_FUNCTIONS = {
+    'linear': Linear,
+    'sigmoid': Sigmoid,
+    'tanh': Tanh,
+    'relu': ReLU,
+    'softmax': Softmax,
+}

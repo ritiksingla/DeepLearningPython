@@ -5,20 +5,47 @@ from scipy.special import xlogy
 
 
 class Loss(object):
+    '''
+    Base class for Losses
+    '''
+
     def __init__(self):
         pass
 
     def forward(self, prediction: ndarray, target: ndarray) -> float:
+        '''
+        Computes the loss function given prediction and target
+        Calls _output()
+
+        Parameters | Attributes
+        ----------
+        prediction : ndarray
+            predictions for regression or classification
+
+        target : ndarray
+            target for regression or classification
+        '''
         assert_same_shape(prediction, target)
         self.prediction = prediction
         self.target = target
-        loss_value = self._output()
-        return loss_value
+        return self._output()
 
     def _output(self) -> float:
         raise NotImplementedError()
 
     def backward(self) -> ndarray:
+        '''
+        Computes gradients w.r.t. input : dL / d_prediction
+
+        Attributes
+        ----------
+        input_grad_ : ndarray
+            gradients w.r.t. input to loss function
+
+        Returns
+        ----------
+        input_grad_
+        '''
         self.input_grad_ = self._input_grad()
         assert_same_shape(self.prediction, self.input_grad_)
         return self.input_grad_
@@ -28,6 +55,10 @@ class Loss(object):
 
 
 class MSELoss(Loss):
+    '''
+    Class for Mean Squared Error Loss
+    '''
+
     def __init__(self) -> None:
         # pass
         super().__init__()
@@ -42,6 +73,10 @@ class MSELoss(Loss):
 
 
 class L1Loss(Loss):
+    '''
+    Class for L1 Loss
+    '''
+
     def __init__(self) -> None:
         # pass
         super().__init__()
@@ -57,15 +92,21 @@ class L1Loss(Loss):
 
 
 class BCELoss(Loss):
+    '''
+    Class for Binary Cross Entropy Loss
+    '''
+
     def __init__(self) -> None:
         # pass
         super().__init__()
 
     def forward(self, prediction: ndarray, target: ndarray) -> float:
+        '''
+        Shapes for prediction and target may not be identical initially
+        '''
         self.prediction = prediction
         self.target = target
-        loss_value = self._output()
-        return loss_value
+        return self._output()
 
     def _output(self) -> float:
         eps = np.finfo(self.prediction.dtype).eps
@@ -80,3 +121,6 @@ class BCELoss(Loss):
     def _input_grad(self) -> ndarray:
         grad = self.prediction - self.target
         return grad / self.prediction.shape[0]
+
+
+LOSS_FUNCTIONS = {'MSELoss': MSELoss, 'BCELoss': BCELoss, 'L1Loss': L1Loss}
