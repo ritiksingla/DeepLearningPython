@@ -12,7 +12,17 @@ def assert_same_shape(array: ndarray, array_grad: ndarray):
         '''.format(
         tuple(array_grad.shape), tuple(array.shape)
     )
-    return None
+    return True
+
+
+def assert_dim(array: ndarray, dim: int):
+    assert (
+        array.ndim == dim
+    ), '''array should have been {0} dimensional 
+    but is instead {1} dimensional'''.format(
+        dim, array.ndim
+    )
+    return True
 
 
 def permute_data(X, y):

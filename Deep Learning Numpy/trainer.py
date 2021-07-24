@@ -4,6 +4,7 @@ from numpy import ndarray
 from utils import assert_same_shape, permute_data
 from network import NeuralNetwork
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.metrics import accuracy_score, r2_score
 from optimizers import Optimizer
 
 
@@ -12,11 +13,13 @@ class Trainer(object):
         self,
         net: NeuralNetwork,
         optim: Optimizer,
+        lr_schedule=None,
         classification: bool = False,
         verbose: bool = False,
     ):
         self.net = net
         self.optim = optim
+        self.lr_schedule = lr_schedule
         self.best_loss = 1e9
         self.verbose = verbose
         self.classification = classification
@@ -25,9 +28,9 @@ class Trainer(object):
     def generate_batches(
         self, X: ndarray, y: ndarray, batch_size: int = 32
     ) -> tuple[ndarray]:
-    '''
-    Generate batches according to batch_size parameter passed
-    '''
+        '''
+        Generate batches according to batch_size parameter passed
+        '''
         assert (
             X.shape[0] == y.shape[0]
         ), '''
@@ -37,9 +40,19 @@ class Trainer(object):
             X.shape[0], y.shape[0]
         )
         N = X.shape[0]
-        for ii in range(0, N, batch_size):
-            X_batch, y_batch = X[ii : ii + batch_size], y[ii : ii + batch_size]
+        for i_batch in range(0, N, batch_size):
+            X_batch, y_batch = (
+                X[i_batch : i_batch + batch_size],
+                y[i_batch : i_batch + batch_size],
+            )
             yield X_batch, y_batch
+
+    @property
+    def get_metrics_max(self):
+        if self.classification:
+            return accuracy_score
+        else:
+            return r2_score
 
     def fit(
         self,
@@ -68,29 +81,33 @@ class Trainer(object):
             if eval_every is not None:
                 y_test = lb.transform(y_test)
 
-        for e in range(1, epochs + 1):
-            if eval_every is not None and e % eval_every == 0:
+        for epoch in range(1, epochs + 1):
+            if eval_every is not None and epoch % eval_every == 0:
                 last_model = deepcopy(self.net)
             X_train, y_train = permute_data(X_train, y_train)
             batch_generator = self.generate_batches(X_train, y_train, batch_size)
 
             # Training Loop
-            for ii, (X_batch, y_batch) in enumerate(batch_generator):
+            for i_batch, (X_batch, y_batch) in enumerate(batch_generator):
                 self.net.train(X_batch, y_batch)
-                self.optim.step(ii + 1)
+                # Take optimization step
+                self.optim.step(i_batch + 1)
+            # Perform LR Decay if any
+            if self.lr_schedule is not None:
+                self.lr_schedule.forward(epoch)
 
             # Evaluation Block
-            if eval_every is not None and e % eval_every == 0:
+            if eval_every is not None and epoch % eval_every == 0:
                 test_preds = self.net.forward(X_test, training=False)
                 loss = self.net.loss.forward(test_preds, y_test)
                 if loss < self.best_loss:
                     if self.verbose:
-                        print(f"Validation loss after {e} epochs is {loss:.3f}")
+                        print(f"Validation loss after {epoch} epochs is {loss:.3f}")
                     self.best_loss = loss
                 else:
                     if self.verbose:
                         print(
-                            f"""Loss increased after epoch {e}, final loss was {self.best_loss:.3f}, using the model from epoch {e-eval_every}"""
+                            f"""Loss increased after epoch {epoch}, final loss was {self.best_loss:.3f}, using the model from epoch {epoch-eval_every}"""
                         )
                     self.net = last_model
                     # ensure self.optim is still updating self.net

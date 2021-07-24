@@ -3,6 +3,8 @@ from layers import Dense, BatchNormalization
 from network import NeuralNetwork
 from optimizers import SGD, RMSProp, Adam
 from trainer import Trainer
+from lr_schedulers import ReduceLROnPlateau, ExponentialLR
+
 from sklearn.metrics import r2_score, accuracy_score
 from sklearn.datasets import load_boston
 from sklearn.preprocessing import StandardScaler
@@ -29,7 +31,7 @@ print("_________No Hidden Layer_________")
 lr = NeuralNetwork(loss='MSELoss', seed=20190501)
 lr.add(Dense(units=1))
 
-trainer = Trainer(lr, SGD(lr=0.01), verbose=True)
+trainer = Trainer(net=lr, optim=SGD(lr=0.01), verbose=True)
 
 trainer.fit(X_train, y_train, X_test, y_test, epochs=100, eval_every=10, seed=20190501)
 
@@ -49,10 +51,11 @@ print("_________Single Hidden Layer_________")
 nn = NeuralNetwork(loss='MSELoss', seed=20190501)
 nn.add(Dense(units=13, activation='sigmoid'))
 nn.add(Dense(units=1))
+optimizer = SGD(lr=0.1, momentum=0.9, dampening=0)
+lr_schedule = ExponentialLR(optimizer, gamma=0.9)
+trainer = Trainer(net=nn, optim=optimizer, lr_schedule=lr_schedule, verbose=True)
 
-trainer = Trainer(nn, SGD(lr=0.01, momentum=0.9, dampening=0), verbose=True)
-
-trainer.fit(X_train, y_train, X_test, y_test, epochs=100, eval_every=10, seed=20190501)
+trainer.fit(X_train, y_train, X_test, y_test, epochs=10, eval_every=10, seed=20190501)
 
 print(
     'R2 Score for training data: {:.2f}'.format(
@@ -73,7 +76,7 @@ dnn.add(BatchNormalization())
 dnn.add(Dense(units=13, activation='sigmoid'))
 dnn.add(Dense(units=1))
 
-trainer = Trainer(dnn, Adam(lr=0.01, nesterov=True), verbose=True)
+trainer = Trainer(net=dnn, optim=Adam(lr=0.01, nesterov=True), verbose=True)
 
 # Using large batch size for BatchNormalization layer
 trainer.fit(
