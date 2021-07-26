@@ -51,9 +51,8 @@ print("_________Single Hidden Layer_________")
 nn = NeuralNetwork(loss='MSELoss', seed=20190501)
 nn.add(Dense(units=13, activation='sigmoid'))
 nn.add(Dense(units=1))
-optimizer = SGD(lr=0.1, momentum=0.9, dampening=0)
-lr_schedule = ExponentialLR(optimizer, gamma=0.9)
-trainer = Trainer(net=nn, optim=optimizer, lr_schedule=lr_schedule, verbose=True)
+optimizer = Adam(lr=0.1)
+trainer = Trainer(net=nn, optim=optimizer, verbose=True)
 
 trainer.fit(X_train, y_train, X_test, y_test, epochs=10, eval_every=10, seed=20190501)
 
@@ -102,7 +101,8 @@ print(
 
 
 # _________Classification_________
-print("_________Single Hidden Layer Classification_________")
+print("_________Classification_________")
+print("_________1 Hidden Layer_________")
 
 # Generate a binary classification dataset.
 X, y = make_classification(
@@ -129,7 +129,6 @@ print(
         accuracy_score(y_test, trainer.predict(X_test))
     )
 )
-
 
 # _________Convolutional Neural Network Classification_________
 print("_________Convolutional Neural Network Classification_________")
