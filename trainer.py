@@ -1,11 +1,12 @@
 import numpy as np
-from copy import deepcopy
 from numpy import ndarray
 from utils import assert_same_shape, permute_data
 from network import NeuralNetwork
+from optimizers import Optimizer
+
+from copy import deepcopy
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.metrics import accuracy_score, r2_score
-from optimizers import Optimizer
 
 
 class Trainer(object):

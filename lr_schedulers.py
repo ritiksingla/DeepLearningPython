@@ -3,6 +3,14 @@ from optimizers import Optimizer
 
 
 class _LRScheduler(object):
+    '''
+    Base class for LR Schedulers
+    Parameters
+    ----------
+    optimizer : Optimizer
+        underlying optimizer object reference used for current trainer
+    '''
+
     def __init__(self, optimizer: Optimizer):
         if not isinstance(optimizer, Optimizer):
             raise TypeError('{} is not an Optimizer'.format(type(optimizer).__name__))
@@ -21,7 +29,7 @@ class ReduceLROnPlateau(object):
     Parameters
     ----------
     optimizer : Optimizer
-        optimizer used for gradient descent
+        underlying optimizer object reference used for current trainer
     mode : str either 'min' or 'max'
         whether metrics to forward function decrease or increase
         for example (error or accuracy)
@@ -83,6 +91,19 @@ class ReduceLROnPlateau(object):
 
 
 class ExponentialLR(_LRScheduler):
+    '''
+    Exponential LR Scheduler
+
+    Parameters
+    ----------
+    optimizer : Optimizer
+        underlying optimizer object reference used for current trainer
+
+    gamma : float
+        controls exponential power to reduce lr
+
+    '''
+
     def __init__(self, optimizer, gamma):
         super().__init__(optimizer)
         self.gamma = gamma
