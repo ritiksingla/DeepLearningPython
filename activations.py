@@ -1,7 +1,6 @@
 import numpy as np
 from numpy import ndarray
 from base import Operation
-from utils import softmax
 
 
 class Linear(Operation):
@@ -19,6 +18,11 @@ class Linear(Operation):
         '''Compute input gradient'''
         return output_grad
 
+    def __str__(self):
+        res = str()
+        res += f'linear'
+        return res
+
 
 class Sigmoid(Operation):
     '''
@@ -34,6 +38,11 @@ class Sigmoid(Operation):
     def _input_grad(self, output_grad: ndarray) -> ndarray:
         '''Compute input gradient'''
         return self.output_ * (1 - self.output_) * output_grad
+
+    def __str__(self):
+        res = str()
+        res += f'sigmoid'
+        return res
 
 
 class Tanh(Operation):
@@ -51,6 +60,11 @@ class Tanh(Operation):
         '''Compute input gradient'''
         return output_grad * (1 - self.output_ * self.output_)
 
+    def __str__(self):
+        res = str()
+        res += f'tanh'
+        return res
+
 
 class ReLU(Operation):
     '''
@@ -67,23 +81,10 @@ class ReLU(Operation):
         '''Compute input gradient'''
         return output_grad * (self.output_ >= 0)
 
-
-class Softmax(Operation):
-    '''
-    Softmax Activation Function
-    Note : _input_grad does simply backprop output_grad
-    as it is assumed to be combined with BCELoss at last layer
-    '''
-
-    def __init__(self):
-        super().__init__()
-
-    def _output(self) -> ndarray:
-        return softmax(self.input_)
-
-    def _input_grad(self, output_grad: ndarray) -> ndarray:
-        '''Compute input gradient'''
-        return output_grad
+    def __str__(self):
+        res = str()
+        res += f'relu'
+        return res
 
 
 ACTIVATION_FUNCTIONS = {
@@ -91,5 +92,4 @@ ACTIVATION_FUNCTIONS = {
     'sigmoid': Sigmoid,
     'tanh': Tanh,
     'relu': ReLU,
-    'softmax': Softmax,
 }

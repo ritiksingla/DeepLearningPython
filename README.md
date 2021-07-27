@@ -1,14 +1,15 @@
 # Deep Learning From Scratch
+Highly inspired from [DLFS_code](https://github.com/SethHWeidman/DLFS_code)
 
 ## Run Locally
 To run locally make changes in test.py file
 
 ## Currently supports
 
-1. **Layers** : Dense, BatchNormalization, Flatten, Conv2D
+1. **Layers** : Dense, BatchNormalization, Flatten, Conv2D, MaxPool2D
 2. **Optimizers**: SGD with optional momentum, RMSProp, Adam
-3. **Activation Functions** : Linear, Sigmoid, Tanh, ReLU, Softmax
-4. **Losses** : MSELoss, L1Loss, BCELoss
+3. **Activation Functions** : Linear, Sigmoid, Tanh, ReLU
+4. **Losses** : MSELoss, L1Loss, SoftmaxCrossEntropy
 5. **LR Schedulers** : ReduceLROnPlateau, ExponentialLR
 
 ## Results
@@ -51,11 +52,11 @@ To run locally make changes in test.py file
 ### Convolutional Networks
 - Classification
 ```
-	Dataset: MNIST dataset with 2000 examples,
-	training dataset : 1400 examples, test dataset : 600 examples
+	Dataset: sklearn digits dataset with 1797 examples of 8x8x1 images,
+	training dataset : 1257 examples, test dataset : 540 examples
 
 	1. Single Hidden Layer
 	RMSProp(lr = 0.01), loss = BCELoss
-	Training Accuracy : 80%
-	Test Accuracy : 80%
+	Training Accuracy : 99%
+	Test Accuracy : 95%
 ```

@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import ndarray
-from utils import assert_same_shape
+from utils import assert_same_shape, softmax
 from scipy.special import xlogy
 
 
@@ -91,9 +91,9 @@ class L1Loss(Loss):
         return grad / self.prediction.shape[0]
 
 
-class BCELoss(Loss):
+class SoftmaxCrossEntropy(Loss):
     '''
-    Class for Binary Cross Entropy Loss
+    Class for Softmax Cross Entropy Loss
     '''
 
     def __init__(self) -> None:
@@ -104,7 +104,7 @@ class BCELoss(Loss):
         '''
         Shapes for prediction and target may not be identical initially
         '''
-        self.prediction = prediction
+        self.prediction = softmax(prediction)
         self.target = target
         return self._output()
 
@@ -123,4 +123,8 @@ class BCELoss(Loss):
         return grad / self.prediction.shape[0]
 
 
-LOSS_FUNCTIONS = {'MSELoss': MSELoss, 'BCELoss': BCELoss, 'L1Loss': L1Loss}
+LOSS_FUNCTIONS = {
+    'MSELoss': MSELoss,
+    'SoftmaxCrossEntropy': SoftmaxCrossEntropy,
+    'L1Loss': L1Loss,
+}

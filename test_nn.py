@@ -1,13 +1,12 @@
-import numpy as np
-from layers import Dense, BatchNormalization, Conv2D
+from layers import Dense, BatchNormalization
 from network import NeuralNetwork
 from optimizers import SGD, RMSProp, Adam
 from trainer import Trainer
 from lr_schedulers import ReduceLROnPlateau, ExponentialLR
 
 from sklearn.metrics import r2_score, accuracy_score
-from sklearn.datasets import load_boston, load_digits
-from sklearn.preprocessing import StandardScaler, LabelBinarizer
+from sklearn.datasets import load_boston
+from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.datasets import make_classification
 
@@ -24,7 +23,6 @@ target = target.reshape(-1, 1)
 X_train, X_test, y_train, y_test = train_test_split(
     data, target, test_size=0.3, random_state=80718
 )
-
 # _________No Hidden Layer Regression_________
 print("_________No Hidden Layer_________")
 
@@ -99,7 +97,6 @@ print(
     'R2 Score for test data: {:.2f}'.format(r2_score(y_test, trainer.predict(X_test)))
 )
 
-
 # _________Classification_________
 print("_________Classification_________")
 print("_________1 Hidden Layer_________")
@@ -112,38 +109,12 @@ X = StandardScaler().fit_transform(X)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
 
-model = NeuralNetwork(loss='BCELoss', seed=20190119)
+model = NeuralNetwork(loss='SoftmaxCrossEntropy', seed=20190119)
 model.add(Dense(10, activation='sigmoid'))
-model.add(Dense(4, activation='softmax'))
+model.add(Dense(4))
 
 trainer = Trainer(model, RMSProp(lr=0.01), classification=True, verbose=True)
 trainer.fit(X_train, y_train, X_test, y_test, epochs=150, eval_every=10, seed=20190501)
-print(
-    'Accuracy Score for training data: {:.2f}'.format(
-        accuracy_score(y_train, trainer.predict(X_train))
-    )
-)
-
-print(
-    'Accuracy Score for test data: {:.2f}'.format(
-        accuracy_score(y_test, trainer.predict(X_test))
-    )
-)
-
-# _________Convolutional Neural Network Classification_________
-print("_________Convolutional Neural Network Classification_________")
-X, y = load_digits(return_X_y=True)
-X = StandardScaler().fit_transform(X)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y)
-X_train = X_train.reshape(-1, 1, 8, 8)
-X_test = X_test.reshape(-1, 1, 8, 8)
-model = NeuralNetwork(loss='BCELoss', seed=20190119)
-model.add(Conv2D(filters=2, kernel_size=3, flatten=True))
-model.add(Dense(10, activation='softmax'))
-
-trainer = Trainer(model, RMSProp(lr=0.01), classification=True, verbose=True)
-trainer.fit(X_train, y_train, X_test, y_test, epochs=150, eval_every=10, seed=20190501)
-
 print(
     'Accuracy Score for training data: {:.2f}'.format(
         accuracy_score(y_train, trainer.predict(X_train))

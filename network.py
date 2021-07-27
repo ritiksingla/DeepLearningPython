@@ -68,7 +68,7 @@ class NeuralNetwork(object):
         grad = loss_grad
         for layer in reversed(self.layers):
             grad = layer.backward(grad)
-        return None
+        return grad
 
     def train(self, x_batch: ndarray, y_batch: ndarray):
         '''
@@ -85,6 +85,8 @@ class NeuralNetwork(object):
         Used for updating parameters in optimization step
         '''
         for layer in self.layers:
+            if not hasattr(layer, 'params'):
+                continue
             yield from layer.params
 
     def param_grads(self):
@@ -94,3 +96,9 @@ class NeuralNetwork(object):
         '''
         for layer in self.layers:
             yield from layer.param_grads
+
+    def __str__(self):
+        res = str()
+        for layer in self.layers:
+            res += str(layer)
+        return res

@@ -47,8 +47,6 @@ class Layer(object):
     def __init__(self, units: int = 0, activation: str = 'linear'):
         self.units = units
         self.first = True
-        self.params: List[ndarray] = []
-        self.operations: List[Operation] = []
         if activation not in ACTIVATION_FUNCTIONS.keys():
             raise ValueError(f'Activation {activation} is not supported currently')
         self.activation = ACTIVATION_FUNCTIONS[activation]()
@@ -133,6 +131,9 @@ class Layer(object):
             if issubclass(operation.__class__, ParamOperation):
                 self.param_grads.append(operation.param_grad_)
 
+    def __str__(self):
+        raise NotImplementedError()
+
 
 class Dense(Layer):
     '''
@@ -176,6 +177,8 @@ class Dense(Layer):
         at the time input_ provided for first time in self.forward()
         self.seed is setup in network.py
         '''
+        self.params: List[ndarray] = []
+        self.operations: List[Operation] = []
         if self.seed is not None:
             np.random.seed(self.seed)
         # Weights
@@ -194,6 +197,14 @@ class Dense(Layer):
             self.activation,
         ]
         return None
+
+    def __str__(self):
+        res = str()
+        res += (
+            f'Dense(units={self.units}, use_bias={self.use_bias},'
+            f' activation={self.activation})'
+        )
+        return res
 
 
 class BatchNormalization(Layer):
@@ -252,6 +263,8 @@ class BatchNormalization(Layer):
             moving variance of each feature over batches seen during training,
             weight for present variance and previous variances depends upon momentum
         '''
+        self.params: List[ndarray] = []
+        self.operations: List[Operation] = []
         if self.seed is not None:
             np.random.seed(self.seed)
         self.units = input_.shape[1]
@@ -325,11 +338,19 @@ class BatchNormalization(Layer):
         self.output_ = input_normalized
         return self.output_
 
+    def __str__(self):
+        res = str()
+        res += (
+            f'BatchNormalization(momentum={self.momentum}, epsilon={self.epsilon},'
+            f' activation={self.activation})\n'
+        )
+        return res
+
 
 # _________Convolutional Layers_________
 
 
-class Flatten(Operation):
+class _flatten(Operation):
     '''
     Flatten the 2D volume of convolutional layers
 
@@ -361,6 +382,150 @@ class Flatten(Operation):
         return output_grad.reshape(self.input_.shape)
 
 
+class Flatten(Layer):
+    '''
+    Wrapper over _flatten layer
+
+    Parameters
+    ----------
+    input_ : ndarray of size = (batch_size, channels, H, W)
+
+    Returns
+    ----------
+    output_ : ndarray of size = (batch_size, channels * H * W)
+    '''
+
+    def __init__(self, activation: str = 'linear'):
+        super().__init__(activation)
+
+    def _setup_layer(self, input_):
+        self.operations: List[Operation] = []
+        self.units = input_.shape[1]
+        self.operations.append(_flatten())
+
+    def __str__(self):
+        res = str()
+        res += f'Flatten()\n'
+        return res
+
+
+class _max_pool2d(Operation):
+    '''
+    Max Pools the 2D volume of convolutional layers
+
+    Parameters
+    ----------
+    input_ : ndarray of size = (batch_size, channels, H, W)
+
+    Returns
+    ----------
+    output_ : ndarray of size = (
+                                batch_size,
+                                channels,
+                                ((H - pool_size[0]) // stride[0]) + 1,
+                                ((W - pool_size[1]) // stride[1]) + 1,
+                                )
+    '''
+
+    def __init__(self, pool_size, stride):
+        super().__init__()
+        self.pool_size = pool_size
+        self.stride = stride
+
+    def _output(self):
+        output_ = np.zeros(
+            (
+                self.input_.shape[0],
+                self.input_.shape[1],
+                (self.input_.shape[2] - self.pool_size[0]) // self.stride[0] + 1,
+                (self.input_.shape[3] - self.pool_size[1]) // self.stride[1] + 1,
+            )
+        )
+        for i in range(0, self.input_.shape[2] - self.pool_size[0] + 1, self.stride[0]):
+            for j in range(
+                0, self.input_.shape[3] - self.pool_size[1] + 1, self.stride[1]
+            ):
+                output_[:, :, (i // self.stride[0]), (j // self.stride[1])] = np.max(
+                    self.input_[
+                        :, :, i : i + self.pool_size[0], j : j + self.pool_size[1]
+                    ],
+                    axis=(2, 3),
+                )
+        return output_
+
+    def _input_grad(self, output_grad: ndarray) -> ndarray:
+        '''
+        Parameters
+        ----------
+        output_grad : ndarray of size = (
+                                batch_size,
+                                channels,
+                                ((H - pool_size[0]) // stride[0]) + 1,
+                                ((W - pool_size[1]) // stride[1]) + 1,
+                                )
+
+        Returns
+        ----------
+        View of output_grad : ndarray of size = (batch_size, channels, H, W)
+        '''
+        input_grad = np.zeros_like(self.input_)
+        for batch_i in range(self.input_.shape[0]):
+            for c in range(self.input_.shape[1]):
+                for i in range(
+                    0, self.input_.shape[2] - self.pool_size[0] + 1, self.stride[0]
+                ):
+                    for j in range(
+                        0, self.input_.shape[3] - self.pool_size[1] + 1, self.stride[1]
+                    ):
+                        maxi = self.output_[
+                            batch_i, c, (i // self.stride[0]), (j // self.stride[1])
+                        ]
+                        max_mask = np.where(
+                            self.input_[
+                                batch_i,
+                                c,
+                                i : i + self.pool_size[0],
+                                j : j + self.pool_size[1],
+                            ]
+                            == maxi,
+                            1,
+                            0,
+                        )
+                        input_grad[
+                            batch_i,
+                            c,
+                            i : i + self.pool_size[0],
+                            j : j + self.pool_size[1],
+                        ] += (
+                            max_mask
+                            * output_grad[
+                                batch_i, c, (i // self.stride[0]), (j // self.stride[1])
+                            ]
+                        )
+        return input_grad
+
+
+class MaxPool2D(Layer):
+    '''
+    Wrapper over _max_pool2d layer
+    '''
+
+    def __init__(self, pool_size: tuple, stride: tuple, activation: str = 'linear'):
+        super().__init__(activation)
+        self.pool_size = pool_size
+        self.stride = stride
+
+    def _setup_layer(self, input_):
+        self.operations: List[Operation] = []
+        self.units = 1
+        self.operations.append(_max_pool2d(self.pool_size, self.stride))
+
+    def __str__(self):
+        res = str()
+        res += f'MaxPool()\n'
+        return res
+
+
 class Conv2D(Layer):
     '''
     2D Convolution layer
@@ -375,9 +540,6 @@ class Conv2D(Layer):
 
     activation : str
         activation function used after applying layer
-
-    flatten : bool
-        whether to flatten the result (true) or not (false)
 
     Attributes
     ----------
@@ -394,22 +556,17 @@ class Conv2D(Layer):
         operations from base.py
     '''
 
-    def __init__(
-        self,
-        filters: int,
-        kernel_size,
-        activation: str = 'linear',
-        flatten: bool = False,
-    ):
+    def __init__(self, filters: int, kernel_size, activation: str = 'linear'):
         # filters are C_out or units
         super().__init__(filters, activation)
         self.kernel_size = kernel_size
-        self.flatten = flatten
 
     def _setup_layer(self, input_: ndarray) -> ndarray:
         '''
         input_ of size=(batch_size, C_in, H, W)
         '''
+        self.params: List[ndarray] = []
+        self.operations: List[Operation] = []
         if self.seed is not None:
             np.random.seed(self.seed)
         in_channels = input_.shape[1]
@@ -421,6 +578,12 @@ class Conv2D(Layer):
         )
         self.params.append(conv_params)
         self.operations = [Conv2D_OP(conv_params), self.activation]
-        if self.flatten:
-            self.operations.append(Flatten())
         return None
+
+    def __str__(self):
+        res = str()
+        res += (
+            f'Conv2D(filters={self.units}, kernel_size={self.kernel_size},'
+            f' activation={self.activation})\n'
+        )
+        return res
