@@ -161,3 +161,33 @@ class WeightMultiplyElementWise(ParamOperation):
         param_grad = self.input_ * output_grad
         # (None,neurons)->(1,neurons)->(neurons,1)
         return (np.sum(param_grad, axis=0).reshape(1, -1)).T
+
+
+class EmbeddingMultiply(ParamOperation):
+    '''Embedding multiplication operation'''
+
+    def __init__(self, W: ndarray):
+        # self.params_ of shape = (embedding_dim, num_embedding)
+        super().__init__(W)
+
+    def _output(self) -> ndarray:
+        '''
+        Compute Output
+        (None, seq_len, num_embedding) * (embedding_dim, num_embedding).T
+        output_size = (None, seq_len, embedding_dim)
+        '''
+        return np.dot(self.input_, self.param_.T)
+
+    def _input_grad(self, output_grad: ndarray) -> ndarray:
+        '''Compute Input Gradients dL/dz_i = dL/dz_(i + 1) * dz_(i + 1)/dz_i'''
+        # (None, seq_len, embedding_dim) * (embedding_dim, num_embedding)
+        return np.dot(output_grad, self.param_)
+
+    def _param_grad(self, output_grad: ndarray) -> ndarray:
+        '''Compute Parameters Gradients dL/dw_(i + 1) = dL/dz_(i + 1) * dz_(i + 1)/dw_(i + 1)'''
+        param_grads = []
+        for seq in range(output_grad.shape[1]):
+            # (None, embedding_dim).T * (None, num_embedding)
+            param_grads.append(np.dot(output_grad[:, seq, :].T, self.input_[:, seq, :]))
+        param_grads = np.stack(param_grads)
+        return param_grads.mean(axis=0)

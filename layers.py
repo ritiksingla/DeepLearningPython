@@ -7,6 +7,7 @@ from base import (
     WeightMultiply,
     BiasAdd,
     WeightMultiplyElementWise,
+    EmbeddingMultiply,
 )
 from activations import ACTIVATION_FUNCTIONS
 from convolutions import Conv2D_OP
@@ -179,8 +180,8 @@ class Dense(Layer):
         '''
         self.params: List[ndarray] = []
         self.operations: List[Operation] = []
-        if self.seed is not None:
-            np.random.seed(self.seed)
+        # if self.seed is not None:
+        #     np.random.seed(self.seed)
         # Weights
         self.params.append(np.random.randn(self.units, input_.shape[1]))
 
@@ -586,4 +587,31 @@ class Conv2D(Layer):
             f'Conv2D(filters={self.units}, kernel_size={self.kernel_size},'
             f' activation={self.activation})\n'
         )
+        return res
+
+
+class Embedding(Layer):
+    '''
+    input shape=(batch_size, sequence_length) [with each number between [0, num_embeddings) ]
+    output shape=(batch_size, sequence_length, embedding_dim)
+    '''
+
+    def __init__(
+        self, num_embeddings: int, embedding_dim: int, activation: str = 'linear'
+    ):
+        super().__init__(activation)
+        self.num_embeddings = num_embeddings
+        self.embedding_dim = embedding_dim
+
+    def _setup_layer(self, input_):
+        self.operations: List[Operation] = []
+        self.params: List[ndarray] = []
+        self.units = 1
+        self.params.append(np.random.randn(self.embedding_dim, self.num_embeddings))
+
+        self.operations = [EmbeddingMultiply(self.params[0])]
+
+    def __str__(self):
+        res = str()
+        res += f'Embedding()\n'
         return res
